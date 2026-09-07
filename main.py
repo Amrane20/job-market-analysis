@@ -1,0 +1,133 @@
+from collections  import Counter
+import os
+import requests
+import pandas as pd
+from pprint import pprint
+from sqlalchemy import create_engine, text
+
+# The Api Credentials
+app_id = os.getenv("ADZUNA_APP_ID")
+app_key = os.getenv("ADZUNA_APP_KEY")
+
+
+MAX_DAILY_HITS = 150
+# RUN_TIME = "13:00"
+PAGES_PER_BATCH = 10
+
+
+# Set up the Request
+COUNTRY = "gb"
+page = 1
+
+
+
+params = {
+    "app_id": app_id,
+    "app_key": app_key,
+    "results_per_page": 20,
+    "what": "data"
+}
+
+def load_jobs_to_database(df, engine):
+    with engine.begin() as connection:
+        connection.execute(
+            text("""
+                INSERT INTO adzuna_jobs (
+                            job_id,
+                            title,
+                            company,
+                            location,
+                            category,
+                            contract_type,
+                            salary_min,
+                            salary_max,
+                            created_at
+                        )
+                        VALUES (
+                            :job_id,
+                            :title,
+                            :company,
+                            :location,
+                            :category,
+                            :contract_type,
+                            :salary_min,
+                            :salary_max,
+                            :created_at
+                        )
+                        ON CONFLICT (job_id) DO UPDATE SET
+                        title = EXCLUDED.title,
+                        company = EXCLUDED.company,
+                        location = EXCLUDED.location,
+                        category = EXCLUDED.category,
+                        contract_type = EXCLUDED.contract_type,
+                        salary_min = EXCLUDED.salary_min,
+                        salary_max = EXCLUDED.salary_max,
+                        created_at = EXCLUDED.created_at;
+                    """),
+            df.to_dict(orient="records")
+)
+        
+
+
+
+all_jobs = []
+for page in range(1, 151):
+    
+    url = f"https://api.adzuna.com/v1/api/jobs/{COUNTRY}/search/{page}"
+    response = requests.get(url, params=params)
+
+    if response.status_code == 200:
+    
+        data = response.json()
+
+        print(data["count"]) # total number of jobs found
+        job_list = data.get('results', [])
+
+        for job in job_list:
+            # We use .get() so if a field is missing, it returns None instead of crashing
+            job_data = {
+                "job_id" : job.get("id"),
+                "title" : job.get("title"),
+                "company" : job.get("company", {}).get("display_name"), 
+                "location" : job.get("location", {}).get("display_name"),
+                "category" : job.get("category", {}).get("label"),
+                "contract_type" : job.get("contract_time"),
+                "salary_min" : job.get("salary_min"),
+                "salary_max" : job.get("salary_max"),
+                "created_at" : job.get("created")
+            }
+            
+            # add the job_data to the clean_jobs list
+            all_jobs.append(job_data)
+            
+    else:
+        print(f"Page {page} failed with status code: {response.status_code}")
+        
+
+    
+df = pd.DataFrame(all_jobs)
+    
+    
+# change the data type of the created_at column to datetime
+df["created_at"] = pd.to_datetime(df["created_at"], utc=True)
+
+# Testing the connection with the Supabase PostgreSQL database
+DB_CONNECTION = os.getenv("DATABASE_URL")
+
+try:
+    engine = create_engine(DB_CONNECTION)
+
+    # with engine.connect() as connection:
+    #     print("Database connection successful!")
+
+except Exception as e:
+    print(f"Database error: {e}")
+    
+
+load_jobs_to_database(df, engine)
+
+
+
+    
+    
+    
