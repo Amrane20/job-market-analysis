@@ -4,9 +4,12 @@ import requests
 import pandas as pd
 from pprint import pprint
 from sqlalchemy import create_engine, text
+import time
+
 
 # The Api Credentials
 app_id = os.getenv("ADZUNA_APP_ID")
+
 app_key = os.getenv("ADZUNA_APP_KEY")
 
 if not app_id or not app_key:
@@ -104,14 +107,24 @@ for page in range(1, 151):
             
     else:
         print(f"Page {page} failed with status code: {response.status_code}")
+    
+    time.sleep(1)  # to avoid hitting the API rate limit
         
 
     
 df = pd.DataFrame(all_jobs)
     
-    
+# The Data Cleaning and Transformation phase 
 # change the data type of the created_at column to datetime
 df["created_at"] = pd.to_datetime(df["created_at"], utc=True)
+
+df["contract_type"] = df["contract_type"].fillna("Not Specified")
+
+text_columns = ["title", "company", "location", "category", "contract_type"]
+
+for col in text_columns:
+    df[col] = df[col].str.title()
+
 
 # Testing the connection with the Supabase PostgreSQL database
 DB_CONNECTION = os.getenv("DATABASE_URL")
