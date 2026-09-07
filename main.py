@@ -9,6 +9,8 @@ from sqlalchemy import create_engine, text
 app_id = os.getenv("ADZUNA_APP_ID")
 app_key = os.getenv("ADZUNA_APP_KEY")
 
+if not app_id or not app_key:
+    raise ValueError("Adzuna API credentials are missing.")
 
 MAX_DAILY_HITS = 150
 # RUN_TIME = "13:00"
@@ -113,6 +115,8 @@ df["created_at"] = pd.to_datetime(df["created_at"], utc=True)
 
 # Testing the connection with the Supabase PostgreSQL database
 DB_CONNECTION = os.getenv("DATABASE_URL")
+if not DB_CONNECTION:
+    raise ValueError("Database connection string is missing.")
 
 try:
     engine = create_engine(DB_CONNECTION)
