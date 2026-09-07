@@ -2,9 +2,8 @@ name: Daily Job Ingestion
 
 on:
   schedule:
-    - cron: "0 13 * * *"
-      timezone: "Africa/Casablanca"
-  workflow_dispatch:
+    - cron: "0 12 * * *" # Runs at 12:00 UTC (13:00 Morocco time)
+  workflow_dispatch:     # This is a brilliant addition you made!
 
 jobs:
   ingestion:
