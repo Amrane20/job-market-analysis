@@ -35,6 +35,24 @@ params = {
 
 def load_jobs_to_database(df, engine):
     with engine.begin() as connection:
+        # create the table if it does not exist
+        connection.execute(
+            text("""
+                CREATE TABLE IF NOT EXISTS adzuna_jobs (
+                    job_id VARCHAR PRIMARY KEY,
+                    title VARCHAR,
+                    company VARCHAR,
+                    location VARCHAR,
+                    category VARCHAR,
+                    contract_type VARCHAR,
+                    salary_min FLOAT,
+                    salary_max FLOAT,
+                    created_at TIMESTAMP WITH TIME ZONE
+                );
+            """)
+        )
+        
+        #insert or update the data
         connection.execute(
             text("""
                 INSERT INTO adzuna_jobs (
@@ -70,8 +88,7 @@ def load_jobs_to_database(df, engine):
                         created_at = EXCLUDED.created_at;
                     """),
             df.to_dict(orient="records")
-)
-        
+        ) 
 
 
 
