@@ -145,6 +145,17 @@ df = pd.DataFrame(all_jobs)
 df["created_at"] = pd.to_datetime(df["created_at"], utc=True)
 
 df["contract_type"] = df["contract_type"].fillna("Not Specified")
+df["local_area"] = df["local_area"].fillna("Not Specified")
+df["broad_area"] = df["broad_area"].fillna("Not Specified")
+
+#  Make sure salary columns are float and replace missing values with 0
+df["salary_min"] = pd.to_numeric(
+    df["salary_min"], errors="coerce"
+).fillna(0).astype(float)
+
+df["salary_max"] = pd.to_numeric(
+    df["salary_max"], errors="coerce"
+).fillna(0).astype(float)
 
 text_columns = ["title", "company", "local_area", "broad_area", "category", "contract_type"]
 
