@@ -16,8 +16,6 @@ if not app_id or not app_key:
     raise ValueError("Adzuna API credentials are missing.")
 
 MAX_DAILY_HITS = 150
-# RUN_TIME = "13:00"
-PAGES_PER_BATCH = 10
 
 
 # Set up the Request
@@ -97,7 +95,7 @@ def load_jobs_to_database(df, engine):
 
 
 all_jobs = []
-for page in range(1, 10):
+for page in range(1, MAX_DAILY_HITS + 1):
     
     url = f"https://api.adzuna.com/v1/api/jobs/{COUNTRY}/search/{page}"
     response = requests.get(url, params=params)
@@ -162,7 +160,6 @@ text_columns = ["title", "company", "local_area", "broad_area", "category", "con
 for col in text_columns:
     df[col] = df[col].str.title()
 
-print(df[["job_id", "local_area", "broad_area"]].to_string(index=False))
 
 # Testing the connection with the Supabase PostgreSQL database
 DB_CONNECTION = os.getenv("DATABASE_URL")
