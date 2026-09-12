@@ -97,7 +97,7 @@ def load_jobs_to_database(df, engine):
 
 
 all_jobs = []
-for page in range(1, 151):
+for page in range(1, 10):
     
     url = f"https://api.adzuna.com/v1/api/jobs/{COUNTRY}/search/{page}"
     response = requests.get(url, params=params)
@@ -106,16 +106,21 @@ for page in range(1, 151):
     
         data = response.json()
 
-        print(data["count"]) # total number of jobs found
+        print(data["count"]) 
         job_list = data.get('results', [])
 
         for job in job_list:
             # We use .get() so if a field is missing, it returns None instead of crashing
+            # extracting the complet location
+            location = job.get("location", {})
+            location_area = location.get("area", [])
+            
             job_data = {
                 "job_id" : job.get("id"),
                 "title" : job.get("title"),
                 "company" : job.get("company", {}).get("display_name"), 
-                "location" : job.get("location", {}).get("display_name"),
+                "local_area" : location.get("area", [])[2] if len(location.get("area", [])) > 2 else None,
+                "broad_area" : location.get("area", [])[1] if len(location.get("area", [])) > 1 else None,
                 "category" : job.get("category", {}).get("label"),
                 "contract_type" : job.get("contract_time"),
                 "salary_min" : job.get("salary_min"),
@@ -141,20 +146,16 @@ df["created_at"] = pd.to_datetime(df["created_at"], utc=True)
 
 df["contract_type"] = df["contract_type"].fillna("Not Specified")
 
-text_columns = ["title", "company", "location", "category", "contract_type"]
+text_columns = ["title", "company", "local_area", "broad_area", "category", "contract_type"]
 
 for col in text_columns:
     df[col] = df[col].str.title()
 
-# Create the two new columns local_area and broad_area by splitting the location column
-df["local_area"] = df["location"].apply(lambda x: x.split(',')[0].strip() if ',' in str(x) else 'Unknown')
-df["broad_area"] = df["location"].apply(lambda x: x.split(',')[1].strip() if ',' in str(x) else str(x).strip())
-
-df = df.drop(columns=['location'])
-
+print(df[["job_id", "local_area", "broad_area"]].to_string(index=False))
 
 # Testing the connection with the Supabase PostgreSQL database
 DB_CONNECTION = os.getenv("DATABASE_URL")
+
 if not DB_CONNECTION:
     raise ValueError("Database connection string is missing.")
 
