@@ -42,7 +42,8 @@ def load_jobs_to_database(df, engine):
                     job_id VARCHAR PRIMARY KEY,
                     title VARCHAR,
                     company VARCHAR,
-                    location VARCHAR,
+                    local_area VARCHAR,
+                    broad_area VARCHAR,
                     category VARCHAR,
                     contract_type VARCHAR,
                     salary_min FLOAT,
@@ -59,7 +60,8 @@ def load_jobs_to_database(df, engine):
                             job_id,
                             title,
                             company,
-                            location,
+                            local_area,
+                            broad_area,
                             category,
                             contract_type,
                             salary_min,
@@ -70,7 +72,8 @@ def load_jobs_to_database(df, engine):
                             :job_id,
                             :title,
                             :company,
-                            :location,
+                            :local_area,
+                            :broad_area,
                             :category,
                             :contract_type,
                             :salary_min,
@@ -80,7 +83,8 @@ def load_jobs_to_database(df, engine):
                         ON CONFLICT (job_id) DO UPDATE SET
                         title = EXCLUDED.title,
                         company = EXCLUDED.company,
-                        location = EXCLUDED.location,
+                        local_area = EXCLUDED.local_area,
+                        broad_area = EXCLUDED.broad_area,
                         category = EXCLUDED.category,
                         contract_type = EXCLUDED.contract_type,
                         salary_min = EXCLUDED.salary_min,
@@ -141,6 +145,12 @@ text_columns = ["title", "company", "location", "category", "contract_type"]
 
 for col in text_columns:
     df[col] = df[col].str.title()
+
+# Create the two new columns local_area and broad_area by splitting the location column
+df["local_area"] = df["location"].apply(lambda x: x.split(',')[0].strip() if ',' in str(x) else 'Unknown')
+df["broad_area"] = df["location"].apply(lambda x: x.split(',')[1].strip() if ',' in str(x) else str(x).strip())
+
+df = df.drop(columns=['location'])
 
 
 # Testing the connection with the Supabase PostgreSQL database
